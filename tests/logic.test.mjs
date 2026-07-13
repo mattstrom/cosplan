@@ -1,0 +1,113 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  assignLanes, buildClusters, eventKey, groupSplits, mergeStates,
+  overlaps, personalConflicts,
+} from '../js/logic.js';
+import { toIcsUrl } from '../js/ingest.js';
+
+const ev = (id, start, end, title = id) => ({ uid: id, key: `uid:${id}`, title, start, end });
+const H = 60 * 60 * 1000;
+
+test('eventKey prefers UID, falls back to normalized title+start', () => {
+  assert.equal(eventKey({ uid: 'a@sched.com', title: 'X', start: 1 }), 'uid:a@sched.com');
+  assert.equal(eventKey({ uid: '', title: '  Hall  H  Panel ', start: 5 }), 'ts:5|hall h panel');
+});
+
+test('overlaps is exclusive at boundaries', () => {
+  assert.ok(overlaps({ start: 0, end: 10 }, { start: 5, end: 15 }));
+  assert.ok(!overlaps({ start: 0, end: 10 }, { start: 10, end: 20 }));
+});
+
+test('buildClusters groups transitively overlapping intervals', () => {
+  const clusters = buildClusters([
+    { start: 0, end: 10 }, { start: 5, end: 20 }, { start: 15, end: 25 },
+    { start: 30, end: 40 },
+  ]);
+  assert.equal(clusters.length, 2);
+  assert.equal(clusters[0].length, 3);
+  assert.equal(clusters[1].length, 1);
+});
+
+test('assignLanes spreads overlapping events across lanes', () => {
+  const events = [ev('a', 0, 2 * H), ev('b', H, 3 * H), ev('c', 4 * H, 5 * H)];
+  const lanes = assignLanes(events);
+  const byId = Object.fromEntries(lanes.map((l) => [l.event.uid, l]));
+  assert.notEqual(byId.a.lane, byId.b.lane);
+  assert.equal(byId.a.laneCount, 2);
+  assert.equal(byId.c.lane, 0);
+  assert.equal(byId.c.laneCount, 1);
+});
+
+test('personalConflicts suggests keeping the higher tier', () => {
+  const picks = [
+    { event: ev('a', 0, 2 * H), tier: 2 },
+    { event: ev('b', H, 3 * H), tier: 1 },
+    { event: ev('c', 5 * H, 6 * H), tier: 1 },
+  ];
+  const pairs = personalConflicts(picks);
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0].a.event.uid, 'b'); // must-see wins
+  assert.equal(pairs[0].b.event.uid, 'a');
+});
+
+test('groupSplits scores options by tier weight and skips agreement', () => {
+  const matt = { id: 'm', name: 'Matt' };
+  const sam = { id: 's', name: 'Sam' };
+  const riley = { id: 'r', name: 'Riley' };
+  const hallH = ev('hallh', 0, 2 * H);
+  const cosplay = ev('cosplay', H, 3 * H);
+  const later = ev('later', 10 * H, 11 * H);
+
+  const splits = groupSplits([
+    { event: hallH, attendees: [{ person: matt, tier: 1 }, { person: sam, tier: 2 }] },
+    { event: cosplay, attendees: [{ person: riley, tier: 1 }] },
+    { event: later, attendees: [{ person: matt, tier: 2 }, { person: sam, tier: 2 }, { person: riley, tier: 2 }] },
+  ]);
+  assert.equal(splits.length, 1); // `later` is agreement, not a split
+  const [split] = splits;
+  assert.equal(split.options.length, 2);
+  assert.equal(split.options[0].event.uid, 'hallh'); // 3+2 beats 3
+  assert.equal(split.options[0].score, 5);
+  assert.equal(split.options[1].score, 3);
+});
+
+test('groupSplits ignores overlaps involving only one person', () => {
+  const matt = { id: 'm', name: 'Matt' };
+  const splits = groupSplits([
+    { event: ev('a', 0, 2 * H), attendees: [{ person: matt, tier: 1 }] },
+    { event: ev('b', H, 3 * H), attendees: [{ person: matt, tier: 2 }] },
+  ]);
+  assert.equal(splits.length, 0);
+});
+
+test('mergeStates unions events and matches people by name', () => {
+  const base = {
+    people: [{ id: 'p1', name: 'Matt', color: '#111' }],
+    events: { e1: { key: 'e1' } },
+    picks: { p1: { e1: 1 } },
+  };
+  const incoming = {
+    people: [{ id: 'x9', name: 'matt' }, { id: 'x2', name: 'Sam', color: '#222' }],
+    events: { e2: { key: 'e2' } },
+    picks: { x9: { e2: 2 }, x2: { e1: 3 } },
+  };
+  const merged = mergeStates(base, incoming);
+  assert.equal(merged.people.length, 2); // 'matt' matched existing Matt
+  assert.deepEqual(merged.picks.p1, { e1: 1, e2: 2 });
+  const samId = merged.people.find((p) => p.name === 'Sam').id;
+  assert.deepEqual(merged.picks[samId], { e1: 3 });
+  assert.ok(merged.events.e1 && merged.events.e2);
+});
+
+test('toIcsUrl derives the iCal feed from a profile URL', () => {
+  assert.equal(toIcsUrl('https://comiccon2026.sched.com/mattstrom'),
+    'https://comiccon2026.sched.com/mattstrom.ics');
+  assert.equal(toIcsUrl('comiccon2026.sched.com/mattstrom/'),
+    'https://comiccon2026.sched.com/mattstrom.ics');
+  assert.equal(toIcsUrl('webcal://comiccon2026.sched.com/mattstrom.ics'),
+    'https://comiccon2026.sched.com/mattstrom.ics');
+  assert.equal(toIcsUrl('https://comiccon2026.sched.com/mattstrom?iframe=no#top'),
+    'https://comiccon2026.sched.com/mattstrom.ics');
+  assert.throws(() => toIcsUrl('https://comiccon2026.sched.com/'), /profile URL/);
+});

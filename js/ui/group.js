@@ -1,0 +1,132 @@
+// Group tab: manage people, import schedules, and share the group.
+
+import { el, personDot } from './dom.js';
+import { personPicks } from '../selectors.js';
+
+export function renderGroup(ctx) {
+  const { state, ui, actions } = ctx;
+
+  const intro = state.people.length ? null : el('div', { class: 'card hero' },
+    el('h2', {}, 'Compare your Comic-Con schedules'),
+    el('p', {},
+      'Add each person in your group, then import their Sched schedule. ',
+      'Fastest path: everyone opens their Comic-Con Sched profile ',
+      el('span', { class: 'mono' }, '(comiccon2026.sched.com/yourusername)'),
+      ' and pastes that URL here. You can also upload the .ics file from Sched’s ',
+      'iCal export, or paste the raw calendar text.',
+    ),
+    el('button', { class: 'btn primary', onclick: actions.loadDemo }, 'Load demo group'),
+  );
+
+  const addForm = el('form', {
+    class: 'card add-person',
+    onsubmit: (e) => {
+      e.preventDefault();
+      const input = e.target.querySelector('input');
+      if (input.value.trim()) {
+        actions.addPerson(input.value.trim());
+        input.value = '';
+      }
+    },
+  },
+    el('input', { type: 'text', placeholder: 'Add a person (e.g. Matt)', 'aria-label': 'Person name' }),
+    el('button', { class: 'btn primary', type: 'submit' }, 'Add person'),
+  );
+
+  const personCards = state.people.map((person) => {
+    const count = personPicks(state, person.id).length;
+    const status = ui.importStatus?.[person.id];
+    return el('div', { class: 'card person-card' },
+      el('div', { class: 'person-head' },
+        personDot(person),
+        el('input', {
+          class: 'person-name',
+          value: person.name,
+          'aria-label': 'Name',
+          onchange: (e) => actions.renamePerson(person.id, e.target.value),
+        }),
+        el('span', { class: 'muted' }, `${count} event${count === 1 ? '' : 's'}`),
+        el('button', {
+          class: 'btn ghost danger',
+          title: 'Remove person',
+          onclick: () => actions.removePerson(person.id),
+        }, '✕'),
+      ),
+      el('details', { class: 'import-box', open: count === 0 },
+        el('summary', {}, 'Import schedule'),
+        el('div', { class: 'import-option' },
+          el('label', {}, 'Sched profile URL'),
+          el('div', { class: 'row' },
+            el('input', {
+              type: 'url',
+              placeholder: 'https://comiccon2026.sched.com/username',
+              value: person.source && person.source.startsWith('http') ? person.source : '',
+            }),
+            el('button', {
+              class: 'btn',
+              onclick: (e) => {
+                const url = e.target.previousElementSibling?.value
+                  || e.target.closest('.row').querySelector('input').value;
+                if (url.trim()) actions.importFromUrl(person.id, url.trim());
+              },
+            }, 'Fetch'),
+          ),
+        ),
+        el('div', { class: 'import-option' },
+          el('label', {}, 'Upload .ics file (Sched → your schedule → Mobile App + iCal / Export)'),
+          el('input', {
+            type: 'file',
+            accept: '.ics,text/calendar',
+            onchange: (e) => {
+              const file = e.target.files[0];
+              if (file) actions.importFromFile(person.id, file);
+            },
+          }),
+        ),
+        el('div', { class: 'import-option' },
+          el('label', {}, 'Or paste raw iCal text'),
+          el('textarea', { rows: 3, placeholder: 'BEGIN:VCALENDAR…' }),
+          el('button', {
+            class: 'btn',
+            onclick: (e) => {
+              const text = e.target.previousElementSibling.value;
+              if (text.trim()) actions.importFromText(person.id, text, 'pasted text');
+            },
+          }, 'Import pasted text'),
+        ),
+      ),
+      status ? el('div', { class: `import-status ${status.kind}` }, status.message) : null,
+    );
+  });
+
+  const shareCard = el('div', { class: 'card' },
+    el('h3', {}, 'Share with your group'),
+    el('p', { class: 'muted' },
+      'No accounts, no server: copy a share code and send it over text/Discord. ',
+      'Friends paste it here to merge your picks into their view (people are matched by name).'),
+    el('div', { class: 'row wrap' },
+      el('button', { class: 'btn', onclick: actions.copyShareCode }, 'Copy share code'),
+      el('button', { class: 'btn', onclick: actions.downloadJson }, 'Download JSON'),
+    ),
+    el('div', { class: 'import-option' },
+      el('textarea', { rows: 2, placeholder: 'Paste a share code (SL1:…) or exported JSON' }),
+      el('button', {
+        class: 'btn',
+        onclick: (e) => {
+          const text = e.target.previousElementSibling.value;
+          if (text.trim()) actions.mergeShareCode(text.trim());
+        },
+      }, 'Merge into group'),
+    ),
+    ui.shareStatus ? el('div', { class: `import-status ${ui.shareStatus.kind}` }, ui.shareStatus.message) : null,
+  );
+
+  const dangerCard = state.people.length ? el('div', { class: 'card' },
+    el('div', { class: 'row wrap' },
+      el('button', { class: 'btn', onclick: actions.loadDemo }, 'Load demo group'),
+      el('button', { class: 'btn ghost danger', onclick: actions.clearAll }, 'Clear everything'),
+    ),
+  ) : null;
+
+  return el('div', {}, intro, addForm, personCards, shareCard, dangerCard);
+}

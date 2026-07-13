@@ -99,6 +99,8 @@ export function renderGroup(ctx) {
     );
   });
 
+  const syncCard = buildSyncCard(ctx);
+
   const shareCard = el('div', { class: 'card' },
     el('h3', {}, 'Share with your group'),
     el('p', { class: 'muted' },
@@ -128,5 +130,58 @@ export function renderGroup(ctx) {
     ),
   ) : null;
 
-  return el('div', {}, intro, addForm, personCards, shareCard, dangerCard);
+  return el('div', {}, intro, addForm, personCards, syncCard, shareCard, dangerCard);
+}
+
+function buildSyncCard(ctx) {
+  const { sync, actions } = ctx;
+  if (!sync.enabled) return null; // not configured — the app is local-only
+
+  if (!sync.code) {
+    return el('div', { class: 'card' },
+      el('h3', {}, 'Live sync'),
+      el('p', { class: 'muted' },
+        'Put this group on the shared server so everyone sees the same picks ',
+        'automatically — no more passing codes around.'),
+      el('div', { class: 'row wrap' },
+        el('button', { class: 'btn primary', onclick: actions.createSyncGroup }, 'Create sync group'),
+        el('input', { type: 'text', placeholder: '…or paste a group code / join link' }),
+        el('button', {
+          class: 'btn',
+          onclick: (e) => {
+            const code = e.target.previousElementSibling.value;
+            if (code.trim()) actions.joinSyncGroup(code);
+          },
+        }, 'Join'),
+      ),
+      sync.status === 'error'
+        ? el('div', { class: 'import-status error' }, sync.statusDetail || 'Sync error')
+        : null,
+    );
+  }
+
+  const statusLine = {
+    syncing: '⟳ Syncing…',
+    ok: `✓ Synced${sync.lastSync ? ` · ${new Date(sync.lastSync).toLocaleTimeString()}` : ''}`,
+    error: `⚠ ${sync.statusDetail || 'Sync error — will retry'}`,
+    idle: 'Waiting to sync…',
+  }[sync.status] || '';
+
+  return el('div', { class: 'card' },
+    el('h3', {}, 'Live sync'),
+    el('p', { class: 'muted' },
+      'This group syncs automatically. Group code: ',
+      el('span', { class: 'mono' }, sync.code)),
+    el('div', { class: 'row wrap' },
+      el('button', { class: 'btn primary', onclick: actions.copySyncLink }, 'Copy join link'),
+      el('button', {
+        class: 'btn',
+        onclick: () => navigator.clipboard.writeText(sync.code),
+      }, 'Copy code'),
+      el('button', { class: 'btn ghost danger', onclick: actions.leaveSyncGroup }, 'Leave group'),
+    ),
+    el('div', {
+      class: `import-status ${sync.status === 'error' ? 'error' : sync.status === 'ok' ? 'ok' : 'busy'}`,
+    }, statusLine),
+  );
 }

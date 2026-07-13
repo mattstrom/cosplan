@@ -125,33 +125,69 @@ export function groupSplits(entries) {
   return splits;
 }
 
-// --- State merging (for share codes) ------------------------------------
+// --- State merging (share codes and live sync) ---------------------------
 
-// Merge another group's state into ours: union events, match people by
-// name (case-insensitive), and let incoming picks win for matched people.
+const nameKey = (p) => p.name.trim().toLowerCase();
+
+/**
+ * Merge another copy of the group into ours. Used both for pasted share
+ * codes and for live sync (read-merge-write against the server copy), so it
+ * must converge when run repeatedly in either direction:
+ *
+ * - Events are unioned (they're immutable facts about the con).
+ * - People match by id first (same group synced across devices), then by
+ *   name (independently-built groups merging via share code).
+ * - Each person carries a revision `rev` (bumped on any local edit to them
+ *   or their picks). Higher rev wins wholesale — that's what lets tier
+ *   changes AND pick removals propagate. Equal revs (legacy data) union.
+ * - `removed` maps nameKey -> tombstone timestamp; a person stays gone
+ *   unless re-added with a newer rev.
+ */
 export function mergeStates(base, incoming) {
   const out = {
     ...base,
-    people: [...base.people],
+    people: base.people.map((p) => ({ ...p })),
     events: { ...base.events, ...(incoming.events || {}) },
-    picks: { ...base.picks },
+    picks: Object.fromEntries(
+      Object.entries(base.picks).map(([id, v]) => [id, { ...v }]),
+    ),
+    removed: { ...(base.removed || {}) },
   };
-  for (const person of incoming.people || []) {
-    const existing = out.people.find(
-      (p) => p.name.trim().toLowerCase() === person.name.trim().toLowerCase(),
-    );
-    const target = existing || { ...person, id: person.id };
-    if (!existing) {
-      // Avoid id collisions with an unrelated local person.
-      if (out.people.some((p) => p.id === target.id)) {
-        target.id = `${target.id}-${Math.random().toString(36).slice(2, 7)}`;
-      }
-      out.people.push(target);
-    }
-    out.picks[target.id] = {
-      ...(out.picks[target.id] || {}),
-      ...((incoming.picks || {})[person.id] || {}),
-    };
+  for (const [k, ts] of Object.entries(incoming.removed || {})) {
+    out.removed[k] = Math.max(out.removed[k] || 0, ts);
   }
+
+  for (const person of incoming.people || []) {
+    const inRev = person.rev || 0;
+    const inPicks = (incoming.picks || {})[person.id] || {};
+    const existing = out.people.find((p) => p.id === person.id)
+      || out.people.find((p) => nameKey(p) === nameKey(person));
+    if (!existing) {
+      if ((out.removed[nameKey(person)] ?? -1) >= inRev) continue; // stays deleted
+      const copy = { ...person };
+      out.people.push(copy);
+      out.picks[copy.id] = { ...inPicks };
+    } else {
+      const baseRev = existing.rev || 0;
+      if (inRev > baseRev) {
+        existing.name = person.name;
+        existing.color = person.color || existing.color;
+        existing.rev = inRev;
+        out.picks[existing.id] = { ...inPicks };
+      } else if (inRev === baseRev) {
+        out.picks[existing.id] = { ...(out.picks[existing.id] || {}), ...inPicks };
+      }
+      // inRev < baseRev: our copy is newer, keep it untouched.
+    }
+  }
+
+  // Apply tombstones to the merged result.
+  out.people = out.people.filter((p) => {
+    if ((out.removed[nameKey(p)] ?? -1) >= (p.rev || 0)) {
+      delete out.picks[p.id];
+      return false;
+    }
+    return true;
+  });
   return out;
 }

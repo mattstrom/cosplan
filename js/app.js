@@ -6,6 +6,7 @@ import { parseICS } from './ics.js';
 import { eventKey, DEFAULT_TIER, mergeStates } from './logic.js';
 import { loadState, saveState, clearState, emptyState, encodeShare, decodeShare } from './store.js';
 import { fetchScheduleIcs } from './ingest.js';
+import { createSyncManager, syncEnabled } from './sync.js';
 import { demoState } from './demo.js';
 import { el } from './ui/dom.js';
 import { renderGroup } from './ui/group.js';
@@ -24,10 +25,27 @@ let ui = {
   shareStatus: null,
 };
 
+const sync = createSyncManager({
+  getState: () => state,
+  setSyncedState: (next) => {
+    state = next;
+    saveState(state);
+    render();
+  },
+  onChange: () => render(),
+});
+
 function setState(mutate) {
   mutate(state);
   saveState(state);
+  sync.schedulePush();
   render();
+}
+
+// Bump a person's revision so live sync knows this copy of them is newest.
+function touch(s, personId) {
+  const p = s.people.find((x) => x.id === personId);
+  if (p) p.rev = Date.now();
 }
 
 function setUi(patch) {
@@ -45,12 +63,16 @@ function setImportStatus(personId, kind, message) {
 const actions = {
   addPerson(name) {
     setState((s) => {
+      const now = Date.now();
       s.people.push({
-        id: `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `p-${now.toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
         name,
         color: COLORS[s.people.length % COLORS.length],
         source: '',
+        rev: now,
       });
+      // Re-adding someone must beat any old removal tombstone.
+      if (s.removed) delete s.removed[name.trim().toLowerCase()];
     });
   },
 
@@ -59,6 +81,7 @@ const actions = {
     setState((s) => {
       const p = s.people.find((x) => x.id === id);
       if (p) p.name = name.trim();
+      touch(s, id);
     });
   },
 
@@ -68,6 +91,24 @@ const actions = {
     setState((s) => {
       s.people = s.people.filter((p) => p.id !== id);
       delete s.picks[id];
+      if (person) {
+        s.removed = s.removed || {};
+        s.removed[person.name.trim().toLowerCase()] = Date.now();
+      }
+    });
+  },
+
+  setTier(personId, key, tier) {
+    setState((s) => {
+      (s.picks[personId] = s.picks[personId] || {})[key] = tier;
+      touch(s, personId);
+    });
+  },
+
+  removePick(personId, key) {
+    setState((s) => {
+      if (s.picks[personId]) delete s.picks[personId][key];
+      touch(s, personId);
     });
   },
 
@@ -86,6 +127,7 @@ const actions = {
         s.picks[personId] = next;
         const p = s.people.find((x) => x.id === personId);
         if (p) p.source = sourceLabel;
+        touch(s, personId);
       });
       setImportStatus(personId, 'ok', `Imported ${events.length} events ✓`);
     } catch (err) {
@@ -115,7 +157,10 @@ const actions = {
   },
 
   loadDemo() {
-    if (state.people.length && !confirm('Replace the current group with the demo group?')) return;
+    const inGroup = Boolean(sync.info().code);
+    const note = inGroup ? ' You will also leave your sync group so the demo doesn’t overwrite it.' : '';
+    if (state.people.length && !confirm(`Replace the current group with the demo group?${note}`)) return;
+    if (inGroup) sync.leaveGroup();
     state = demoState(emptyState());
     saveState(state);
     ui = { ...ui, tab: 'timeline', day: null, rankPerson: null, importStatus: {} };
@@ -145,6 +190,26 @@ const actions = {
     }
   },
 
+  createSyncGroup() {
+    sync.createGroup();
+  },
+
+  joinSyncGroup(code) {
+    sync.joinGroup(code);
+  },
+
+  leaveSyncGroup() {
+    if (!confirm('Leave the sync group? Your local copy stays; you just stop syncing.')) return;
+    sync.leaveGroup();
+  },
+
+  async copySyncLink() {
+    const { code } = sync.info();
+    const url = `${location.origin}${location.pathname}#g=${code}`;
+    await navigator.clipboard.writeText(url);
+    setUi({ shareStatus: { kind: 'ok', message: 'Join link copied ✓ — anyone who opens it joins your group.' } });
+  },
+
   downloadJson() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = el('a', { href: URL.createObjectURL(blob), download: 'sched-lane-group.json' });
@@ -153,7 +218,10 @@ const actions = {
   },
 
   clearAll() {
-    if (!confirm('Delete all people, events, and picks?')) return;
+    const inGroup = Boolean(sync.info().code);
+    const note = inGroup ? ' You will also leave your sync group (the group’s shared copy is kept for the others).' : '';
+    if (!confirm(`Delete all people, events, and picks?${note}`)) return;
+    if (inGroup) sync.leaveGroup();
     clearState();
     state = emptyState();
     ui = { tab: 'group', day: null, rankPerson: null, importStatus: {}, shareStatus: null };
@@ -178,7 +246,7 @@ const VIEWS = {
 };
 
 function render() {
-  const ctx = { state, ui, setState, setUi, actions };
+  const ctx = { state, ui, setState, setUi, actions, sync: sync.info() };
 
   const nav = document.getElementById('tabs');
   nav.replaceChildren(...TABS.map(([id, label]) => el('button', {
@@ -188,6 +256,18 @@ function render() {
 
   const view = document.getElementById('view');
   view.replaceChildren((VIEWS[ui.tab] || renderGroup)(ctx));
+}
+
+// Join links: opening …/#g=<code> puts you in that sync group.
+const hashMatch = /#g=([a-z0-9]{16,})/i.exec(location.hash);
+if (hashMatch && syncEnabled()) {
+  const target = hashMatch[1].toLowerCase();
+  const current = sync.info().code;
+  if (current !== target
+    && (!current || confirm('This link is for a different sync group. Switch to it?'))) {
+    sync.joinGroup(target);
+  }
+  history.replaceState(null, '', location.pathname + location.search);
 }
 
 render();

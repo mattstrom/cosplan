@@ -49,13 +49,13 @@ export function renderRankings(ctx) {
             Object.entries(TIERS).map(([t, info]) => el('button', {
               class: `tier-btn tier-${t} ${+t === tier ? 'active' : ''}`,
               title: info.label,
-              onclick: () => ctx.setState((s) => { s.picks[person.id][event.key] = +t; }),
+              onclick: () => ctx.actions.setTier(person.id, event.key, +t),
             }, info.short)),
           ),
           el('button', {
             class: 'btn ghost danger',
             title: 'Remove from schedule',
-            onclick: () => ctx.setState((s) => { delete s.picks[person.id][event.key]; }),
+            onclick: () => ctx.actions.removePick(person.id, event.key),
           }, '✕'),
         ),
       )),

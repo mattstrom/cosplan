@@ -48,6 +48,36 @@ their picks come along. **Download JSON** gives a plain backup of everything.
 Practical flow: one person collects everyone's `.ics`/URLs, imports them all,
 then sends one share code to the group so everyone sees the same picture.
 
+## Live sync (optional, via Supabase)
+
+Share codes work with zero setup, but with ~15 minutes of one-time setup you
+get automatic syncing: everyone joins a group once and edits appear on the
+others' devices within seconds (changes push immediately; the app also polls
+every 20s and refetches when you switch back to the tab). Setup:
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the project's **SQL Editor**, paste and run
+   [`supabase/schema.sql`](supabase/schema.sql) from this repo.
+3. In **Project Settings → API**, copy the *Project URL* and *anon public*
+   key into [`js/config.js`](js/config.js), commit, and push (redeploys
+   Pages automatically).
+
+A **Live sync** card then appears on the Group tab: one person hits
+**Create sync group** and sends the join link (`…/#g=<code>`); everyone who
+opens it is in. No accounts — the unguessable group code *is* the membership,
+same trust model as the share codes. The database is locked down (RLS with no
+policies) so the public anon key can only call two functions that require
+knowing a code; nobody can list groups.
+
+How conflicts resolve: each person in the group carries a revision that bumps
+whenever their picks change, and the newest revision wins per person — so two
+friends editing their own schedules at once never clobber each other, and
+removals propagate properly (deleted people get tombstones). "Load demo
+group" and "Clear everything" deliberately drop you out of the sync group
+first so you can't wipe the shared copy by accident. The free Supabase tier
+covers this easily, but note it pauses projects after ~a week of inactivity —
+poke the dashboard before con week.
+
 ## Running it
 
 It's static files — serve the folder any way you like:

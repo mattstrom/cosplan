@@ -11,9 +11,10 @@ export function emptyState() {
   return {
     version: 1,
     tz: DEFAULT_TZ,
-    people: [],       // [{ id, name, color, source }]
+    people: [],       // [{ id, name, color, source, rev }]
     events: {},       // { [eventKey]: { key, uid, title, start, end, allDay, venue, description, url } }
     picks: {},        // { [personId]: { [eventKey]: tier } }
+    removed: {},      // { [lowercased name]: tombstone ms } — for sync merging
   };
 }
 
@@ -70,6 +71,7 @@ export async function encodeShare(state) {
     people: state.people,
     events: state.events,
     picks: state.picks,
+    removed: state.removed || {},
   });
   const bytes = new TextEncoder().encode(json);
   if (typeof CompressionStream !== 'undefined') {
@@ -108,5 +110,6 @@ function normalizeShared(obj) {
     people: obj.people,
     events: obj.events || {},
     picks: obj.picks || {},
+    removed: obj.removed || {},
   };
 }

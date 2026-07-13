@@ -125,6 +125,14 @@ export function groupSplits(entries) {
   return splits;
 }
 
+// Monotonic per-person revision: wall-clock when clocks are sane, but never
+// goes backward — otherwise an edit made on a device whose clock lags a
+// peer's would get a lower rev than the synced copy and be silently
+// reverted by the next poll.
+export function nextRev(currentRev = 0) {
+  return Math.max(Date.now(), currentRev + 1);
+}
+
 // --- State merging (share codes and live sync) ---------------------------
 
 const nameKey = (p) => p.name.trim().toLowerCase();

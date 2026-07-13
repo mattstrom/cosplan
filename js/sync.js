@@ -29,7 +29,7 @@ export function newGroupCode() {
   return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('');
 }
 
-async function rpc(name, args) {
+async function rpc(name, args, { keepalive = false } = {}) {
   const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {
@@ -38,6 +38,10 @@ async function rpc(name, args) {
       authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify(args),
+    // keepalive lets a save started on pagehide outlive the page. Bodies
+    // are capped (~64 KB) in that mode; if the blob is bigger the request
+    // fails and the change goes out on the next regular sync instead.
+    keepalive,
   });
   if (!res.ok) {
     throw new Error(`sync request failed (${res.status})`);
@@ -47,7 +51,7 @@ async function rpc(name, args) {
 }
 
 const getGroup = (code) => rpc('get_group', { p_code: code });
-const saveGroup = (code, state) => rpc('save_group', { p_code: code, p_state: state });
+const saveGroup = (code, state, opts) => rpc('save_group', { p_code: code, p_state: state }, opts);
 
 // JSON with sorted keys, so "did anything change?" comparisons don't get
 // fooled by key order.
@@ -96,7 +100,9 @@ export function createSyncManager({ getState, setSyncedState, onChange = () => {
         setSyncedState(merged);
       }
       if (!server || stableStringify(merged) !== stableStringify(server)) {
-        await saveGroup(code, merged);
+        await saveGroup(code, merged, {
+          keepalive: document.visibilityState === 'hidden',
+        });
       }
       lastSync = Date.now();
       setStatus('ok');
@@ -111,7 +117,19 @@ export function createSyncManager({ getState, setSyncedState, onChange = () => {
   function schedulePush() {
     if (!syncEnabled() || !code) return;
     clearTimeout(pushTimer);
-    pushTimer = setTimeout(syncNow, 1200);
+    pushTimer = setTimeout(syncNow, 600);
+  }
+
+  // A pending debounced push must not die with the page — flush it the
+  // moment the tab is hidden or closing (locking a phone, switching apps).
+  // There's no time for read-merge-write during teardown, so fire a blind
+  // keepalive save; if it overwrites a peer's newer edit, per-person
+  // revisions restore it on that peer's next regular sync.
+  function flushPending() {
+    if (!pushTimer || !code) return;
+    clearTimeout(pushTimer);
+    pushTimer = null;
+    saveGroup(code, getState(), { keepalive: true }).catch(() => {});
   }
 
   function startPolling() {
@@ -135,7 +153,9 @@ export function createSyncManager({ getState, setSyncedState, onChange = () => {
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') syncNow();
+    else flushPending();
   });
+  window.addEventListener('pagehide', flushPending);
 
   startPolling();
   if (code) syncNow();

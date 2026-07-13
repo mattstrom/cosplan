@@ -160,13 +160,7 @@ function buildSyncCard(ctx) {
     );
   }
 
-  const statusLine = {
-    syncing: '⟳ Syncing…',
-    ok: `✓ Synced${sync.lastSync ? ` · ${new Date(sync.lastSync).toLocaleTimeString()}` : ''}`,
-    error: `⚠ ${sync.statusDetail || 'Sync error — will retry'}`,
-    idle: 'Waiting to sync…',
-  }[sync.status] || '';
-
+  const { text, kind } = syncStatusView(sync);
   return el('div', { class: 'card' },
     el('h3', {}, 'Live sync'),
     el('p', { class: 'muted' },
@@ -180,8 +174,20 @@ function buildSyncCard(ctx) {
       }, 'Copy code'),
       el('button', { class: 'btn ghost danger', onclick: actions.leaveSyncGroup }, 'Leave group'),
     ),
-    el('div', {
-      class: `import-status ${sync.status === 'error' ? 'error' : sync.status === 'ok' ? 'ok' : 'busy'}`,
-    }, statusLine),
+    el('div', { id: 'sync-status', class: `import-status ${kind}` }, text),
   );
+}
+
+// Shared with app.js, which repaints just this line on sync status changes
+// instead of rerendering the whole app (a full rerender would steal input
+// focus and detach elements mid-click on every poll).
+export function syncStatusView(sync) {
+  const text = {
+    syncing: '⟳ Syncing…',
+    ok: `✓ Synced${sync.lastSync ? ` · ${new Date(sync.lastSync).toLocaleTimeString()}` : ''}`,
+    error: `⚠ ${sync.statusDetail || 'Sync error — will retry'}`,
+    idle: 'Waiting to sync…',
+  }[sync.status] || '';
+  const kind = sync.status === 'error' ? 'error' : sync.status === 'ok' ? 'ok' : 'busy';
+  return { text, kind };
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeStates } from '../js/logic.js';
+import { mergeStates, nextRev } from '../js/logic.js';
 import { stableStringify, newGroupCode } from '../js/sync.js';
 
 const person = (id, name, rev = 0, extra = {}) => ({ id, name, color: '#111', rev, ...extra });
@@ -103,6 +103,13 @@ test('stableStringify is key-order independent', () => {
     stableStringify({ a: { c: 'x', d: [1, 2] }, b: 1 }),
   );
   assert.notEqual(stableStringify({ a: 1 }), stableStringify({ a: 2 }));
+});
+
+test('nextRev never goes backward, even against a fast peer clock', () => {
+  const now = Date.now();
+  assert.ok(nextRev(0) >= now);
+  const futureRev = now + 10 * 60 * 1000; // peer's clock 10 min ahead
+  assert.ok(nextRev(futureRev) > futureRev);
 });
 
 test('group codes are long, lowercase, and unambiguous', () => {

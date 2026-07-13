@@ -3,13 +3,14 @@
 // share codes. No backend.
 
 import { parseICS } from './ics.js';
-import { eventKey, DEFAULT_TIER, mergeStates } from './logic.js';
+import { eventKey, DEFAULT_TIER, mergeStates, nextRev } from './logic.js';
 import { loadState, saveState, clearState, emptyState, encodeShare, decodeShare } from './store.js';
 import { fetchScheduleIcs } from './ingest.js';
 import { createSyncManager, syncEnabled } from './sync.js';
 import { demoState } from './demo.js';
 import { el } from './ui/dom.js';
-import { renderGroup } from './ui/group.js';
+import { renderGroup, syncStatusView } from './ui/group.js';
+import { stableStringify } from './sync.js';
 import { renderTimeline } from './ui/timeline.js';
 import { renderConflicts } from './ui/conflicts.js';
 import { renderRankings } from './ui/rankings.js';
@@ -32,7 +33,15 @@ const sync = createSyncManager({
     saveState(state);
     render();
   },
-  onChange: () => render(),
+  // Repaint only the status line — a full render on every poll would yank
+  // the DOM out from under the user (lost input focus, mid-click detaches).
+  onChange: () => {
+    const node = document.getElementById('sync-status');
+    if (!node) return;
+    const { text, kind } = syncStatusView(sync.info());
+    node.className = `import-status ${kind}`;
+    node.textContent = text;
+  },
 });
 
 function setState(mutate) {
@@ -45,7 +54,7 @@ function setState(mutate) {
 // Bump a person's revision so live sync knows this copy of them is newest.
 function touch(s, personId) {
   const p = s.people.find((x) => x.id === personId);
-  if (p) p.rev = Date.now();
+  if (p) p.rev = nextRev(p.rev);
 }
 
 function setUi(patch) {
@@ -192,15 +201,18 @@ const actions = {
 
   createSyncGroup() {
     sync.createGroup();
+    render();
   },
 
   joinSyncGroup(code) {
     sync.joinGroup(code);
+    render();
   },
 
   leaveSyncGroup() {
     if (!confirm('Leave the sync group? Your local copy stays; you just stop syncing.')) return;
     sync.leaveGroup();
+    render();
   },
 
   async copySyncLink() {
@@ -257,6 +269,27 @@ function render() {
   const view = document.getElementById('view');
   view.replaceChildren((VIEWS[ui.tab] || renderGroup)(ctx));
 }
+
+// Cross-tab sync within the same browser: another tab saving to
+// localStorage fires 'storage' here — merge its copy into ours so two open
+// tabs stay live without a server round-trip (and even with sync off).
+window.addEventListener('storage', (e) => {
+  if (e.key !== 'sched-lane:v1' || !e.newValue) return;
+  try {
+    const incoming = JSON.parse(e.newValue);
+    const merged = mergeStates(state, incoming);
+    if (stableStringify(merged) !== stableStringify(state)) {
+      state = merged;
+      render();
+    }
+    // Only write back if we had something the other tab lacked — writing
+    // identical data would just ping-pong storage events between tabs.
+    if (stableStringify(merged) !== stableStringify(incoming)) {
+      saveState(state);
+      sync.schedulePush();
+    }
+  } catch { /* ignore malformed writes */ }
+});
 
 // Join links: opening …/#g=<code> puts you in that sync group.
 const hashMatch = /#g=([a-z0-9]{16,})/i.exec(location.hash);

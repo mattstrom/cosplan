@@ -83,6 +83,6 @@ export function renderConflicts(ctx) {
     personal.length
       ? personal
       : el('p', { class: 'ok-note' }, '✅ Nobody is double-booked.'),
-    el('p', { class: 'hint' }, 'Suggestions weight everyone’s tiers: Must-see = 3, Want = 2, If time = 1. Adjust tiers on the Rankings tab to change the math.'),
+    el('p', { class: 'hint' }, 'Suggestions weight everyone’s tiers: Must-see = 3, Want = 2, If time = 1. Bookmarked (🔖) events are undecided and sit out entirely. Adjust tiers on the Rankings tab to change the math.'),
   );
 }

@@ -131,7 +131,7 @@ const actions = {
         for (const e of events) {
           const key = eventKey(e);
           s.events[key] = { key, ...e };
-          next[key] = prev[key] || DEFAULT_TIER; // keep tiers across re-imports
+          next[key] = prev[key] ?? DEFAULT_TIER; // keep tiers/bookmarks across re-imports (bookmark is 0, so no ||)
         }
         s.picks[personId] = next;
         const p = s.people.find((x) => x.id === personId);

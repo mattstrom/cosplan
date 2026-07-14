@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  assignLanes, buildClusters, eventKey, groupSplits, mergeStates,
-  overlaps, personalConflicts,
+  BOOKMARK, assignLanes, buildClusters, eventKey, groupSplits, mergeStates,
+  overlaps, personalConflicts, tierInfo, TIERS,
 } from '../js/logic.js';
 import { toIcsUrl } from '../js/ingest.js';
 
@@ -51,6 +51,20 @@ test('personalConflicts suggests keeping the higher tier', () => {
   assert.equal(pairs[0].b.event.uid, 'a');
 });
 
+test('personalConflicts ignores bookmarked picks', () => {
+  const picks = [
+    { event: ev('a', 0, 2 * H), tier: BOOKMARK },
+    { event: ev('b', H, 3 * H), tier: 1 },
+  ];
+  assert.equal(personalConflicts(picks).length, 0);
+});
+
+test('tierInfo covers bookmarks as well as ranking tiers', () => {
+  assert.equal(tierInfo(1), TIERS[1]);
+  assert.equal(tierInfo(BOOKMARK).weight, 0);
+  assert.equal(tierInfo(BOOKMARK).label, 'Bookmarked');
+});
+
 test('groupSplits scores options by tier weight and skips agreement', () => {
   const matt = { id: 'm', name: 'Matt' };
   const sam = { id: 's', name: 'Sam' };
@@ -70,6 +84,29 @@ test('groupSplits scores options by tier weight and skips agreement', () => {
   assert.equal(split.options[0].event.uid, 'hallh'); // 3+2 beats 3
   assert.equal(split.options[0].score, 5);
   assert.equal(split.options[1].score, 3);
+});
+
+test('groupSplits ignores bookmarked attendees', () => {
+  const matt = { id: 'm', name: 'Matt' };
+  const sam = { id: 's', name: 'Sam' };
+  const hallH = ev('hallh', 0, 2 * H);
+  const cosplay = ev('cosplay', H, 3 * H);
+
+  // Sam only *bookmarked* the overlapping alternative — no split to resolve.
+  assert.equal(groupSplits([
+    { event: hallH, attendees: [{ person: matt, tier: 1 }] },
+    { event: cosplay, attendees: [{ person: sam, tier: BOOKMARK }] },
+  ]).length, 0);
+
+  // With a real split, a bookmark neither adds attendees nor score.
+  const splits = groupSplits([
+    { event: hallH, attendees: [{ person: matt, tier: 1 }, { person: sam, tier: BOOKMARK }] },
+    { event: cosplay, attendees: [{ person: sam, tier: 2 }] },
+  ]);
+  assert.equal(splits.length, 1);
+  assert.equal(splits[0].options[0].event.uid, 'hallh');
+  assert.equal(splits[0].options[0].score, 3); // Sam's bookmark adds nothing
+  assert.equal(splits[0].options[0].attendees.length, 1);
 });
 
 test('groupSplits ignores overlaps involving only one person', () => {

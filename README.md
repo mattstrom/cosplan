@@ -15,7 +15,9 @@ schedules together and shows you:
   switching would cost someone a must-see. Personal double-bookings are listed
   separately with a keep/drop suggestion.
 - **Rankings** — tier each pick (**MUST / WANT / MAYBE**). Tiers feed the
-  conflict math, so ranking honestly gets your panel picked.
+  conflict math, so ranking honestly gets your panel picked. Not sure yet?
+  **🔖 Bookmark** it instead — bookmarked events stay on your timeline
+  (shown dashed) but sit out of the conflict math until you rank them.
 
 It's a fully static app: no server, no accounts. Data lives in your browser's
 localStorage and moves between friends via share codes.

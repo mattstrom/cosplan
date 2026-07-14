@@ -9,6 +9,17 @@ export const TIERS = {
 };
 export const DEFAULT_TIER = 2;
 
+// Bookmark status: saved to decide on later. Stored in the same picks slot
+// as a tier (an event is either ranked or bookmarked), so share codes and
+// sync merging work unchanged — but it is NOT a ranking: bookmarked picks
+// are ignored by the conflict math below.
+export const BOOKMARK = 0;
+export const BOOKMARK_INFO = { label: 'Bookmarked', short: '🔖', weight: 0 };
+
+export function tierInfo(tier) {
+  return tier === BOOKMARK ? BOOKMARK_INFO : TIERS[tier];
+}
+
 // Stable identity for an event so the same panel imported by two people
 // dedupes. Sched keeps UIDs stable per event; fall back to title+start.
 export function eventKey(ev) {
@@ -64,8 +75,11 @@ export function assignLanes(events) {
 // Events on one person's schedule that overlap each other.
 // picks: [{ event, tier }] for one person. Returns [{ a, b }] pairs where
 // `a` is the suggested keep (higher tier wins, then earlier start).
+// Bookmarked picks aren't commitments, so they can't double-book anyone.
 export function personalConflicts(picks) {
-  const sorted = [...picks].sort((x, y) => x.event.start - y.event.start);
+  const sorted = picks
+    .filter((p) => p.tier !== BOOKMARK)
+    .sort((x, y) => x.event.start - y.event.start);
   const pairs = [];
   for (let i = 0; i < sorted.length; i++) {
     for (let j = i + 1; j < sorted.length; j++) {
@@ -91,10 +105,19 @@ export function personalConflicts(picks) {
  * Returns clusters worth resolving: [{ start, end, options }] where each
  * option is { event, attendees, score } sorted best-first. Score is the
  * tier-weighted sum, so the "suggested" group pick is options[0].
+ *
+ * Bookmarks are undecided, so bookmarked attendees neither create splits
+ * nor add to an option's score.
  */
 export function groupSplits(entries) {
   const items = entries
-    .map((e) => ({ ...e, start: e.event.start, end: e.event.end }))
+    .map((e) => ({
+      ...e,
+      attendees: e.attendees.filter((a) => a.tier !== BOOKMARK),
+      start: e.event.start,
+      end: e.event.end,
+    }))
+    .filter((e) => e.attendees.length)
     .sort((a, b) => a.start - b.start);
   const splits = [];
   for (const cluster of buildClusters(items)) {

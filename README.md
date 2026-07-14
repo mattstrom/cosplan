@@ -15,7 +15,9 @@ schedules together and shows you:
   switching would cost someone a must-see. Personal double-bookings are listed
   separately with a keep/drop suggestion.
 - **Rankings** — tier each pick (**MUST / WANT / MAYBE**). Tiers feed the
-  conflict math, so ranking honestly gets your panel picked.
+  conflict math, so ranking honestly gets your panel picked. Not sure yet?
+  **🔖 Bookmark** it instead — bookmarked events stay on your timeline
+  (shown dashed) but sit out of the conflict math until you rank them.
 
 It's a fully static app: no server, no accounts. Data lives in your browser's
 localStorage and moves between friends via share codes.
@@ -89,8 +91,20 @@ python3 -m http.server 8080   # or: npx serve .
 then open http://localhost:8080. (A server is needed because the app uses ES
 modules; opening `index.html` from `file://` won't work.)
 
-To host for your group, enable **GitHub Pages** on this repo (Settings →
-Pages → deploy from branch) — no build step required.
+To host for your group, deploy to **Cloudflare Pages** — no build step
+required (build command: none, output directory: `/`). Two ways:
+
+- **Dashboard (simplest):** Cloudflare dashboard → Workers & Pages → Create →
+  Pages → Connect to Git → pick this repo. Leave the build command empty and
+  set the output directory to `/`. Cloudflare redeploys automatically on every
+  push to `main`.
+- **GitHub Actions (already wired up):** [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+  deploys on push to `main` via `cloudflare/pages-action`. Add two repo
+  secrets (Settings → Secrets and variables → Actions) first:
+  `CLOUDFLARE_API_TOKEN` (a token with *Cloudflare Pages: Edit* permission)
+  and `CLOUDFLARE_ACCOUNT_ID` (from the dashboard's right sidebar). The
+  workflow publishes to a Pages project named `sched-lane` — create it once
+  (either method above) or the first Action run will create it for you.
 
 Try it instantly with the **Load demo group** button (a fake SDCC 2026 group
 of four with built-in overlaps and conflicts).

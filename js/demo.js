@@ -63,12 +63,12 @@ export function demoState(base) {
     { id: 'demo-jordan', name: 'Jordan', color: '#d97706', source: 'demo' },
   ];
 
-  // Tiers: 1 = must-see, 2 = want, 3 = if time.
+  // Tiers: 1 = must-see, 2 = want, 3 = if time, 0 = bookmarked (undecided).
   const picks = {
     'demo-matt': {
       [KEYS.pn]: 2, [KEYS.t1]: 1, [KEYS.t3]: 2, [KEYS.t5]: 1, [KEYS.t7]: 3,
       [KEYS.f1]: 1, [KEYS.f3]: 2, [KEYS.f5]: 2,
-      [KEYS.s1]: 1, [KEYS.s4]: 2, [KEYS.s5]: 2, [KEYS.u3]: 2,
+      [KEYS.s1]: 1, [KEYS.s3]: 0, [KEYS.s4]: 2, [KEYS.s5]: 2, [KEYS.u3]: 2, // s3 bookmarked: overlaps s4 but no conflict
     },
     'demo-sam': {
       [KEYS.pn]: 2, [KEYS.t1]: 1, [KEYS.t2]: 1, [KEYS.t5]: 2,
@@ -78,7 +78,7 @@ export function demoState(base) {
     'demo-riley': {
       [KEYS.t1]: 2, [KEYS.t4]: 1, [KEYS.t6]: 2,
       [KEYS.f1]: 2, [KEYS.f4]: 1, [KEYS.f6]: 1, // f5/f6 overlap handled by group
-      [KEYS.s1]: 2, [KEYS.s3]: 1, [KEYS.s5]: 2, [KEYS.u3]: 1,
+      [KEYS.s1]: 2, [KEYS.s3]: 1, [KEYS.s5]: 2, [KEYS.u2]: 0, [KEYS.u3]: 1,
     },
     'demo-jordan': {
       [KEYS.pn]: 3, [KEYS.t1]: 1, [KEYS.t5]: 1, [KEYS.t6]: 3, // t5/t6 overlap => personal conflict

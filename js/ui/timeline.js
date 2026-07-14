@@ -1,7 +1,7 @@
 // Shared timeline grid: one column per person, day by day.
 
 import { el, personDot } from './dom.js';
-import { assignLanes, TIERS } from '../logic.js';
+import { assignLanes, tierInfo } from '../logic.js';
 import { eventAttendees, pickedDayKeys, picksForDay } from '../selectors.js';
 import { dayKeyInTz, fmtDayLabel, fmtTimeRange, minutesIntoDay } from '../time.js';
 
@@ -64,7 +64,7 @@ export function renderTimeline(ctx) {
       const endsToday = dayKeyInTz(state.tz, event.end) === day;
       const endMin = Math.min(maxMin, endsToday ? minutesIntoDay(state.tz, event.end) : 24 * 60);
       const others = (attendees.get(event.key) || []).length;
-      const tier = TIERS[event.tier];
+      const tier = tierInfo(event.tier);
       return el('div', {
         class: `tl-event tier-${event.tier}`,
         style: {
@@ -105,6 +105,6 @@ export function renderTimeline(ctx) {
     state.people.length
       ? el('div', { class: 'timeline card' }, header, body)
       : el('p', {}, 'Add people on the Group tab first.'),
-    el('p', { class: 'hint' }, '👥 = how many of you have that event picked. Side-by-side blocks in one column mean that person is double-booked.'),
+    el('p', { class: 'hint' }, '👥 = how many of you have that event picked. Side-by-side blocks in one column mean that person is double-booked. Dashed 🔖 blocks are bookmarks — saved to decide on later.'),
   );
 }

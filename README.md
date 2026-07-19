@@ -99,22 +99,15 @@ python3 -m http.server 8080   # or: npx serve .
 then open http://localhost:8080. (A server is needed because the app uses ES
 modules; opening `index.html` from `file://` won't work.)
 
-To host for your group, deploy to **Cloudflare Pages** — no build step
-required (build command: none, output directory: `/`). Two ways:
+The production site is deployed as a **Cloudflare Worker with static assets**.
+The Worker dashboard's Git integration runs `npx wrangler deploy` whenever
+`main` changes. [`wrangler.jsonc`](wrangler.jsonc) identifies the existing
+`cosplan` Worker, while [`.assetsignore`](.assetsignore) limits uploads to
+`index.html`, `styles.css`, and `js/`. There is no build command or separate
+GitHub deployment secret to configure.
 
-- **Dashboard (simplest):** Cloudflare dashboard → Workers & Pages → Create →
-  Pages → Connect to Git → pick this repo. Leave the build command empty and
-  set the output directory to `/`. Cloudflare redeploys automatically on every
-  push to `main`.
-- **GitHub Actions (already wired up):** [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
-  deploys on push to `main` via Cloudflare's Wrangler action. Add two repo
-  secrets (Settings → Secrets and variables → Actions) first:
-  `CLOUDFLARE_API_TOKEN` (a token with *Cloudflare Pages: Edit* permission)
-  and `CLOUDFLARE_ACCOUNT_ID` (from the dashboard's right sidebar). The
-  workflow publishes to a Pages project named `sched-lane` (the project's
-  original name, kept as the internal identifier for the existing deployment
-  and its live data) — create it once (either method above) or the first
-  Action run will create it for you.
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs the test
+suite only; Cloudflare's Git integration owns deployment.
 
 Try it instantly with the **Load demo group** button (a fake SDCC 2026 group
 of four with built-in overlaps and conflicts).

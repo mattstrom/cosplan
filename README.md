@@ -107,7 +107,7 @@ required (build command: none, output directory: `/`). Two ways:
   set the output directory to `/`. Cloudflare redeploys automatically on every
   push to `main`.
 - **GitHub Actions (already wired up):** [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
-  deploys on push to `main` via `cloudflare/pages-action`. Add two repo
+  deploys on push to `main` via Cloudflare's Wrangler action. Add two repo
   secrets (Settings → Secrets and variables → Actions) first:
   `CLOUDFLARE_API_TOKEN` (a token with *Cloudflare Pages: Edit* permission)
   and `CLOUDFLARE_ACCOUNT_ID` (from the dashboard's right sidebar). The

@@ -157,25 +157,24 @@ input.person-name:hover, input.person-name:focus { border-color: var(--border); 
 .import-status.busy { color: var(--muted); }
 
 /* Timeline */
-.timeline { padding: 0; overflow-x: auto; }
+.timeline { padding: 0; }
 .tl-header {
   display: flex; position: sticky; top: 0; z-index: 3;
   background: var(--panel); border-bottom: 1px solid var(--border);
-  min-width: fit-content;
 }
 .tl-gutter-head { width: 56px; flex: none; }
 .tl-col-head {
-  flex: 1 0 170px; padding: 10px 8px; font-weight: 700;
+  flex: 1 1 0; min-width: 0; padding: 10px 8px; font-weight: 700;
   display: flex; align-items: center; gap: 8px;
   border-left: 1px solid var(--border);
 }
-.tl-body { display: flex; min-width: fit-content; padding-top: 12px; }
+.tl-body { display: flex; padding-top: 12px; }
 .tl-gutter { width: 56px; flex: none; position: relative; }
 .hour-label {
   position: absolute; right: 6px; transform: translateY(-50%);
   font-size: 11px; color: var(--muted);
 }
-.tl-col { flex: 1 0 170px; border-left: 1px solid var(--border); }
+.tl-col { flex: 1 1 0; min-width: 0; border-left: 1px solid var(--border); }
 .tl-col-body { position: relative; }
 .hour-line {
   position: absolute; left: 0; right: 0; height: 0;
@@ -278,6 +277,5 @@ input.person-name:hover, input.person-name:focus { border-color: var(--border); 
 .event-dialog a { color: var(--accent); }
 
 @media (max-width: 640px) {
-  .tl-col, .tl-col-head { flex-basis: 140px; }
   .add-person { flex-direction: column; }
 }

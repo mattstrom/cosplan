@@ -1,0 +1,7 @@
+# Only publish the browser application. In particular, exclude node_modules,
+# which contains Wrangler's workerd binary and exceeds the per-asset limit.
+*
+!index.html
+!styles.css
+!js/
+!js/**

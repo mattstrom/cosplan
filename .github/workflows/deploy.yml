@@ -1,12 +1,13 @@
-name: Deploy to Cloudflare Pages
+name: Test
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,11 +17,3 @@ jobs:
 
       - name: Test
         run: npm test
-
-      - name: Publish to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=sched-lane
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

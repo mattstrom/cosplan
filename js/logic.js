@@ -27,6 +27,23 @@ export function eventKey(ev) {
   return `ts:${ev.start}|${ev.title.toLowerCase().replace(/\s+/g, ' ').trim()}`;
 }
 
+// Would re-importing `events` for this person change anything? Auto-refetch
+// uses this to drop no-op imports: bumping a person's rev on every poll
+// would spam live sync and could clobber a peer's newer edit with stale
+// identical data.
+const EVENT_FIELDS = ['uid', 'title', 'start', 'end', 'allDay', 'venue', 'description', 'url'];
+
+export function scheduleUnchanged(prevPicks, prevEvents, events) {
+  const picks = prevPicks || {};
+  const known = prevEvents || {};
+  if (Object.keys(picks).length !== events.length) return false;
+  return events.every((e) => {
+    const key = eventKey(e);
+    const old = known[key];
+    return key in picks && old && EVENT_FIELDS.every((f) => (old[f] ?? '') === (e[f] ?? ''));
+  });
+}
+
 export function overlaps(a, b) {
   return a.start < b.end && b.start < a.end;
 }

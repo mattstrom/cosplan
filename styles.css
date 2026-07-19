@@ -140,6 +140,7 @@ input.person-name:hover, input.person-name:focus { border-color: var(--border); 
 .import-box summary { cursor: pointer; font-weight: 600; color: var(--muted); }
 .import-option { margin: 12px 0 0; }
 .import-option label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.refetch-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
 .import-status { margin-top: 10px; font-size: 13px; font-weight: 600; }
 .import-status.ok { color: var(--ok); }
 .import-status.error { color: var(--danger); }

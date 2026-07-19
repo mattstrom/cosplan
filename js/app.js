@@ -3,13 +3,14 @@
 // share codes. No backend.
 
 import { parseICS } from './ics.js';
-import { eventKey, DEFAULT_TIER, mergeStates, nextRev } from './logic.js';
+import { eventKey, DEFAULT_TIER, mergeStates, nextRev, scheduleUnchanged } from './logic.js';
 import { loadState, saveState, clearState, emptyState, encodeShare, decodeShare } from './store.js';
 import { fetchScheduleIcs } from './ingest.js';
 import { createSyncManager, syncEnabled } from './sync.js';
+import { createRefetchManager } from './refetch.js';
 import { demoState } from './demo.js';
 import { el } from './ui/dom.js';
-import { renderGroup, syncStatusView } from './ui/group.js';
+import { renderGroup, syncStatusView, refetchNote } from './ui/group.js';
 import { stableStringify } from './sync.js';
 import { renderTimeline } from './ui/timeline.js';
 import { renderConflicts } from './ui/conflicts.js';
@@ -121,10 +122,16 @@ const actions = {
     });
   },
 
-  importFromText(personId, text, sourceLabel) {
+  importFromText(personId, text, sourceLabel, { auto = false } = {}) {
     try {
       const { events } = parseICS(text);
       if (!events.length) throw new Error('No events found in that calendar.');
+      if (auto) {
+        const person = state.people.find((x) => x.id === personId);
+        // Skip silently if the person is gone or the feed didn't change —
+        // a rev bump on every poll would churn live sync for nothing.
+        if (!person || scheduleUnchanged(state.picks[personId], state.events, events)) return;
+      }
       setState((s) => {
         const prev = s.picks[personId] || {};
         const next = {};
@@ -138,8 +145,9 @@ const actions = {
         if (p) p.source = sourceLabel;
         touch(s, personId);
       });
-      setImportStatus(personId, 'ok', `Imported ${events.length} events ✓`);
+      setImportStatus(personId, 'ok', `${auto ? 'Auto-refreshed' : 'Imported'} ${events.length} events ✓`);
     } catch (err) {
+      if (auto) return; // background refresh — stay quiet, retry next cycle
       setImportStatus(personId, 'error', err.message);
     }
   },
@@ -241,6 +249,23 @@ const actions = {
   },
 };
 
+// Auto-refetch: anyone imported from a Sched URL gets re-pulled on a timer
+// by whichever tab is open (see js/refetch.js). No-op refreshes never reach
+// setState, so only real schedule changes rerender or sync.
+const refetch = createRefetchManager({
+  getState: () => state,
+  applyImport: (personId, text, icsUrl) => actions.importFromText(personId, text, icsUrl, { auto: true }),
+  // Repaint only the per-person "last checked" notes — same reasoning as
+  // the sync status line above.
+  onChange: () => {
+    const info = refetch.info();
+    for (const person of state.people) {
+      const node = document.getElementById(`refetch-note-${person.id}`);
+      if (node) node.textContent = refetchNote(person, info);
+    }
+  },
+});
+
 // --- Rendering ------------------------------------------------------------
 
 const TABS = [
@@ -258,7 +283,7 @@ const VIEWS = {
 };
 
 function render() {
-  const ctx = { state, ui, setState, setUi, actions, sync: sync.info() };
+  const ctx = { state, ui, setState, setUi, actions, sync: sync.info(), refetch: refetch.info() };
 
   const nav = document.getElementById('tabs');
   nav.replaceChildren(...TABS.map(([id, label]) => el('button', {

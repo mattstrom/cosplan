@@ -2,6 +2,7 @@
 
 import { el, personDot } from './dom.js';
 import { personPicks } from '../selectors.js';
+import { isAutoRefreshable } from '../refetch.js';
 
 export function renderGroup(ctx) {
   const { state, ui, actions } = ctx;
@@ -95,6 +96,10 @@ export function renderGroup(ctx) {
           }, 'Import pasted text'),
         ),
       ),
+      isAutoRefreshable(person)
+        ? el('div', { id: `refetch-note-${person.id}`, class: 'refetch-note' },
+            refetchNote(person, ctx.refetch))
+        : null,
       status ? el('div', { class: `import-status ${status.kind}` }, status.message) : null,
     );
   });
@@ -176,6 +181,15 @@ function buildSyncCard(ctx) {
     ),
     el('div', { id: 'sync-status', class: `import-status ${kind}` }, text),
   );
+}
+
+// Shared with app.js, which repaints these notes after each background
+// refetch instead of rerendering the whole app.
+export function refetchNote(person, refetch) {
+  const mins = Math.round((refetch?.intervalMs || 0) / 60000) || 15;
+  const last = refetch?.lastChecked?.[person.id];
+  return `⟳ Auto-refreshes from Sched every ${mins} min`
+    + (last ? ` · checked ${new Date(last).toLocaleTimeString()}` : '');
 }
 
 // Shared with app.js, which repaints just this line on sync status changes

@@ -1,9 +1,9 @@
-# 🎟️ Sched Lane
+# 🎟️ Cosplan
 
 Compare **Sched.com** personal schedules across a group of friends — built for
 San Diego Comic-Con (`comiccon2026.sched.com`), works for any Sched event.
 
-Everyone builds their own schedule in Sched as usual. Sched Lane pulls those
+Everyone builds their own schedule in Sched as usual. Cosplan pulls those
 schedules together and shows you:
 
 - **Timeline** — a day-by-day grid with a column per person, so you can see the
@@ -103,8 +103,10 @@ required (build command: none, output directory: `/`). Two ways:
   secrets (Settings → Secrets and variables → Actions) first:
   `CLOUDFLARE_API_TOKEN` (a token with *Cloudflare Pages: Edit* permission)
   and `CLOUDFLARE_ACCOUNT_ID` (from the dashboard's right sidebar). The
-  workflow publishes to a Pages project named `sched-lane` — create it once
-  (either method above) or the first Action run will create it for you.
+  workflow publishes to a Pages project named `sched-lane` (the project's
+  original name, kept as the internal identifier for the existing deployment
+  and its live data) — create it once (either method above) or the first
+  Action run will create it for you.
 
 Try it instantly with the **Load demo group** button (a fake SDCC 2026 group
 of four with built-in overlaps and conflicts).

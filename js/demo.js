@@ -11,7 +11,7 @@ function ev(id, title, venue, day, h1, m1, h2, m2) {
   const start = wallToEpoch(TZ, 2026, 7, day, h1, m1);
   const end = wallToEpoch(TZ, 2026, 7, day, h2, m2);
   return {
-    uid: `demo-${id}@sched-lane`,
+    uid: `demo-${id}@cosplan`,
     title, venue, start, end,
     allDay: false,
     description: '',

@@ -64,8 +64,9 @@ export function renderTimeline(ctx) {
       const startMin = Math.max(minMin, minutesIntoDay(state.tz, event.start));
       const endsToday = dayKeyInTz(state.tz, event.end) === day;
       const endMin = Math.min(maxMin, endsToday ? minutesIntoDay(state.tz, event.end) : 24 * 60);
-      const others = (attendees.get(event.key) || []).length;
+      const interestedCount = (attendees.get(event.key) || []).length;
       const tier = tierInfo(event.tier);
+      const interestLabel = `${interestedCount} ${interestedCount === 1 ? 'person' : 'people'} interested`;
       return el('div', {
         class: `tl-event tier-${event.tier}`,
         style: {
@@ -85,7 +86,14 @@ export function renderTimeline(ctx) {
       },
         el('div', { class: 'tl-event-meta' },
           el('span', { class: 'tier-chip' }, tier.short),
-          others > 1 ? el('span', { class: 'together-chip', title: 'people going' }, `👥${others}`) : null,
+          el('span', {
+            class: 'together-chip',
+            title: interestLabel,
+            'aria-label': interestLabel,
+          },
+            el('span', { class: 'together-icon', 'aria-hidden': 'true' }, '👥'),
+            el('span', { class: 'together-count' }, interestedCount),
+          ),
         ),
         el('div', { class: 'tl-event-title' }, event.title),
         el('div', { class: 'tl-event-sub' }, fmtTimeRange(state.tz, event.start, event.end)),
@@ -112,6 +120,6 @@ export function renderTimeline(ctx) {
     state.people.length
       ? el('div', { class: 'timeline card' }, header, body)
       : el('p', {}, 'Add people on the Group tab first.'),
-    el('p', { class: 'hint' }, 'Click an event to see its full description. 👥 = how many of you have that event picked. Side-by-side blocks in one column mean that person is double-booked. Dashed 🔖 blocks are bookmarks — saved to decide on later.'),
+    el('p', { class: 'hint' }, 'Click an event to see its full description. The people badge shows how many of you have that event picked. Side-by-side blocks in one column mean that person is double-booked. Dashed 🔖 blocks are bookmarks — saved to decide on later.'),
   );
 }

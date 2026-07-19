@@ -1,6 +1,7 @@
 // Shared timeline grid: one column per person, day by day.
 
 import { el, personDot } from './dom.js';
+import { openEventDetails } from './details.js';
 import { assignLanes, tierInfo } from '../logic.js';
 import { eventAttendees, pickedDayKeys, picksForDay } from '../selectors.js';
 import { dayKeyInTz, fmtDayLabel, fmtTimeRange, minutesIntoDay } from '../time.js';
@@ -75,6 +76,12 @@ export function renderTimeline(ctx) {
           '--person-color': person.color,
         },
         title: `${event.title}\n${fmtTimeRange(state.tz, event.start, event.end)}${event.venue ? `\n${event.venue}` : ''}`,
+        role: 'button',
+        tabindex: 0,
+        onclick: () => openEventDetails(state, event),
+        onkeydown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEventDetails(state, event); }
+        },
       },
         el('div', { class: 'tl-event-meta' },
           el('span', { class: 'tier-chip' }, tier.short),
@@ -105,6 +112,6 @@ export function renderTimeline(ctx) {
     state.people.length
       ? el('div', { class: 'timeline card' }, header, body)
       : el('p', {}, 'Add people on the Group tab first.'),
-    el('p', { class: 'hint' }, '👥 = how many of you have that event picked. Side-by-side blocks in one column mean that person is double-booked. Dashed 🔖 blocks are bookmarks — saved to decide on later.'),
+    el('p', { class: 'hint' }, 'Click an event to see its full description. 👥 = how many of you have that event picked. Side-by-side blocks in one column mean that person is double-booked. Dashed 🔖 blocks are bookmarks — saved to decide on later.'),
   );
 }

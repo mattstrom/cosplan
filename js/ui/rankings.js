@@ -2,6 +2,7 @@
 // bookmark them to decide on later.
 
 import { el, personDot } from './dom.js';
+import { eventTitleButton } from './details.js';
 import { BOOKMARK, TIERS } from '../logic.js';
 import { personPicks } from '../selectors.js';
 import { dayKeyInTz, fmtDayLabel, fmtTimeRange } from '../time.js';
@@ -41,7 +42,7 @@ export function renderRankings(ctx) {
       el('h3', {}, fmtDayLabel(state.tz, day)),
       dayPicks.map(({ event, tier }) => el('div', { class: `card rank-row ${tier === BOOKMARK ? 'bookmarked' : ''}` },
         el('div', { class: 'rank-info' },
-          el('div', { class: 'rank-title' }, event.title),
+          el('div', { class: 'rank-title' }, eventTitleButton(state, event)),
           el('div', { class: 'muted' },
             `${fmtTimeRange(state.tz, event.start, event.end)}${event.venue ? ` · ${event.venue}` : ''}`),
         ),
@@ -70,5 +71,5 @@ export function renderRankings(ctx) {
     ));
 
   return el('div', {}, personChips, sections,
-    el('p', { class: 'hint' }, 'Tiers feed the conflict resolver: Must-see = 3 points, Want = 2, If time = 1. 🔖 bookmarks an event to decide on later — it stays on the timeline but doesn’t count in conflicts until you rank it.'));
+    el('p', { class: 'hint' }, 'Click an event title to see its full description. Tiers feed the conflict resolver: Must-see = 3 points, Want = 2, If time = 1. 🔖 bookmarks an event to decide on later — it stays on the timeline but doesn’t count in conflicts until you rank it.'));
 }

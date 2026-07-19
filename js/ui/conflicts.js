@@ -2,6 +2,7 @@
 // events, ranked by tier-weighted score) and personal double-bookings.
 
 import { el, personDot } from './dom.js';
+import { eventTitleButton } from './details.js';
 import { groupSplits, personalConflicts, TIERS } from '../logic.js';
 import { eventAttendees, personPicks } from '../selectors.js';
 import { dayKeyInTz, fmtDayLabel, fmtTimeRange } from '../time.js';
@@ -36,7 +37,7 @@ export function renderConflicts(ctx) {
         return el('div', { class: `conflict-option ${i === 0 ? 'winner' : ''}` },
           el('div', { class: 'conflict-option-head' },
             i === 0 ? el('span', { class: 'suggest-chip' }, 'Group pick') : null,
-            el('span', { class: 'conflict-title' }, opt.event.title),
+            eventTitleButton(state, opt.event, 'conflict-title'),
             el('span', { class: 'conflict-score', title: 'tier-weighted votes (must=3, want=2, if-time=1)' }, `${opt.score} pts`),
           ),
           el('div', { class: 'conflict-sub' },
@@ -66,9 +67,9 @@ export function renderConflicts(ctx) {
         ),
       ),
       el('p', {},
-        'Double-booked: keep ', el('strong', {}, a.event.title),
+        'Double-booked: keep ', eventTitleButton(state, a.event, 'strong'),
         ` (${TIERS[a.tier].label}, ${fmtTimeRange(state.tz, a.event.start, a.event.end)})`,
-        ' over ', el('strong', {}, b.event.title),
+        ' over ', eventTitleButton(state, b.event, 'strong'),
         ` (${TIERS[b.tier].label}, ${fmtTimeRange(state.tz, b.event.start, b.event.end)})`,
       ),
     ));
@@ -83,6 +84,6 @@ export function renderConflicts(ctx) {
     personal.length
       ? personal
       : el('p', { class: 'ok-note' }, '✅ Nobody is double-booked.'),
-    el('p', { class: 'hint' }, 'Suggestions weight everyone’s tiers: Must-see = 3, Want = 2, If time = 1. Bookmarked (🔖) events are undecided and sit out entirely. Adjust tiers on the Rankings tab to change the math.'),
+    el('p', { class: 'hint' }, 'Click an event title to see its full description. Suggestions weight everyone’s tiers: Must-see = 3, Want = 2, If time = 1. Bookmarked (🔖) events are undecided and sit out entirely. Adjust tiers on the Rankings tab to change the math.'),
   );
 }

@@ -22,5 +22,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=sched-lane
+          command: pages deploy . --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'cosplan' }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

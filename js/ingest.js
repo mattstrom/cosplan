@@ -11,6 +11,12 @@ export function toIcsUrl(input) {
   let u = input.trim().replace(/^webcal:\/\//i, 'https://');
   if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
   const url = new URL(u);
+  // Sched's "Sync to Google" button hands out Google Calendar add-by-URL
+  // links (google.com/calendar/render?cid=<feed url>) — unwrap the feed.
+  if (/(^|\.)google\.com$/i.test(url.hostname) && url.searchParams.has('cid')) {
+    return toIcsUrl(url.searchParams.get('cid'));
+  }
+  url.protocol = 'https:'; // http feeds would be blocked as mixed content
   url.hash = '';
   url.search = '';
   let path = url.pathname.replace(/\/+$/, '');

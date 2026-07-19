@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BOOKMARK, assignLanes, buildClusters, eventKey, groupSplits, mergeStates,
-  overlaps, personalConflicts, tierInfo, TIERS,
+  overlaps, personalConflicts, scheduleUnchanged, tierInfo, TIERS,
 } from '../js/logic.js';
 import { toIcsUrl } from '../js/ingest.js';
 
@@ -147,4 +147,35 @@ test('toIcsUrl derives the iCal feed from a profile URL', () => {
   assert.equal(toIcsUrl('https://comiccon2026.sched.com/mattstrom?iframe=no#top'),
     'https://comiccon2026.sched.com/mattstrom.ics');
   assert.throws(() => toIcsUrl('https://comiccon2026.sched.com/'), /profile URL/);
+});
+
+test('toIcsUrl unwraps Google Calendar sync links and upgrades http', () => {
+  assert.equal(
+    toIcsUrl('https://www.google.com/calendar/render?cid=http://comiccon2026.sched.com/strom.matt.ics'),
+    'https://comiccon2026.sched.com/strom.matt.ics');
+  assert.equal(
+    toIcsUrl('https://www.google.com/calendar/render?cid=webcal%3A%2F%2Fcomiccon2026.sched.com%2Fstrom.matt.ics'),
+    'https://comiccon2026.sched.com/strom.matt.ics');
+  assert.equal(toIcsUrl('http://comiccon2026.sched.com/mattstrom.ics'),
+    'https://comiccon2026.sched.com/mattstrom.ics');
+});
+
+test('scheduleUnchanged spots no-op re-imports', () => {
+  const feed = [
+    { uid: 'a', title: 'Panel A', start: 1000, end: 2000, allDay: false, venue: 'Hall H', description: '', url: '' },
+    { uid: 'b', title: 'Panel B', start: 3000, end: 4000, allDay: false, venue: '', description: '', url: '' },
+  ];
+  const events = Object.fromEntries(feed.map((e) => [eventKey(e), { key: eventKey(e), ...e }]));
+  const picks = { 'uid:a': 1, 'uid:b': BOOKMARK };
+
+  assert.equal(scheduleUnchanged(picks, events, feed), true);
+  // Event details changed (rescheduled panel) → re-import.
+  assert.equal(scheduleUnchanged(picks, events, [feed[0], { ...feed[1], start: 3500 }]), false);
+  // Event added or removed → re-import.
+  assert.equal(scheduleUnchanged(picks, events, [feed[0]]), false);
+  assert.equal(scheduleUnchanged(picks, events,
+    [...feed, { uid: 'c', title: 'Panel C', start: 5000, end: 6000, allDay: false, venue: '', description: '', url: '' }]), false);
+  // Feed event we've never seen (pick exists but event record missing).
+  assert.equal(scheduleUnchanged({ 'uid:a': 1, 'uid:c': 2 }, events, [feed[0], { ...feed[1], uid: 'c' }]), false);
+  assert.equal(scheduleUnchanged(undefined, {}, feed), false);
 });

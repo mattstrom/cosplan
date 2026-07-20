@@ -3,7 +3,7 @@
 import { el, personDot } from './dom.js';
 import { openEventDetails } from './details.js';
 import { assignLanes, tierInfo } from '../logic.js';
-import { eventAttendees, pickedDayKeys, picksForDay } from '../selectors.js';
+import { eventInterestCounts, eventInterestKey, pickedDayKeys, picksForDay } from '../selectors.js';
 import { dayKeyInTz, fmtDayLabel, fmtTimeRange, minutesIntoDay } from '../time.js';
 
 const PX_PER_MIN = 1.6;
@@ -19,7 +19,7 @@ export function renderTimeline(ctx) {
     );
   }
   const day = days.includes(ui.day) ? ui.day : days[0];
-  const attendees = eventAttendees(state);
+  const interestCounts = eventInterestCounts(state);
 
   const dayPicks = state.people.map((person) => ({
     person,
@@ -64,7 +64,7 @@ export function renderTimeline(ctx) {
       const startMin = Math.max(minMin, minutesIntoDay(state.tz, event.start));
       const endsToday = dayKeyInTz(state.tz, event.end) === day;
       const endMin = Math.min(maxMin, endsToday ? minutesIntoDay(state.tz, event.end) : 24 * 60);
-      const interestedCount = (attendees.get(event.key) || []).length;
+      const interestedCount = interestCounts.get(eventInterestKey(event)) || 1;
       const tier = tierInfo(event.tier);
       const interestLabel = `${interestedCount} ${interestedCount === 1 ? 'person' : 'people'} interested`;
       return el('div', {

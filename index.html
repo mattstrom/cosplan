@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cosplan — compare Comic-Con schedules</title>
+  <title>SDCC Planner — compare Comic-Con schedules</title>
   <meta name="description" content="Compare Sched.com personal schedules across your group: shared timeline, rankings, and conflict resolution.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟️</text></svg>">
   <link rel="stylesheet" href="styles.css">
@@ -11,7 +11,7 @@
 <body>
   <header class="app-header">
     <div class="wrap">
-      <h1>🎟️ Cosplan</h1>
+      <h1>🎟️ SDCC Planner</h1>
       <p class="tagline">Compare your group’s Comic-Con schedules · rank picks · resolve conflicts</p>
       <nav id="tabs" class="tabs" aria-label="Views"></nav>
     </div>
@@ -21,6 +21,15 @@
   </main>
   <footer class="wrap muted">
     <p>All data stays in your browser. Times shown in San Diego time (America/Los_Angeles).</p>
+    <p class="disclaimer">
+      <strong>Disclaimer:</strong> Live sync data is stored in the author's
+      personal Supabase project — don't treat anything you sync as private,
+      and expect the Supabase project to be torn down after SDCC 2026 wraps.
+      This is a side project maintained on a best-effort basis; it may change
+      or break as features get added. If you'd rather not depend on any of
+      that, <a href="https://github.com/mattstrom/cosplan" target="_blank" rel="noopener">fork the repo</a>
+      and host your own copy.
+    </p>
   </footer>
   <script type="module" src="js/app.js"></script>
 </body>

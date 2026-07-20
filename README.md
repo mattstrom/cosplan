@@ -1,9 +1,9 @@
-# 🎟️ Cosplan
+# 🎟️ SDCC Planner
 
 Compare **Sched.com** personal schedules across a group of friends — built for
 San Diego Comic-Con (`comiccon2026.sched.com`), works for any Sched event.
 
-Everyone builds their own schedule in Sched as usual. Cosplan pulls those
+Everyone builds their own schedule in Sched as usual. SDCC Planner pulls those
 schedules together and shows you:
 
 - **Timeline** — a day-by-day grid with a column per person, so you can see the

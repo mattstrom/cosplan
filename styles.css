@@ -65,6 +65,7 @@ body {
 
 main { padding: 20px 16px 40px; }
 footer { padding-bottom: 32px; font-size: 13px; }
+.disclaimer { margin-top: 8px; max-width: 60em; }
 
 h2 { font-size: 18px; margin: 24px 0 12px; }
 h3 { font-size: 15px; margin: 18px 0 8px; }

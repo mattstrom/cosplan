@@ -232,7 +232,7 @@ const actions = {
 
   downloadJson() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const a = el('a', { href: URL.createObjectURL(blob), download: 'cosplan-group.json' });
+    const a = el('a', { href: URL.createObjectURL(blob), download: 'sdcc-planner-group.json' });
     a.click();
     URL.revokeObjectURL(a.href);
   },

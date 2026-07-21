@@ -102,7 +102,7 @@ modules; opening `index.html` from `file://` won't work.)
 The production site is deployed as a **Cloudflare Worker with static assets**.
 The Worker dashboard's Git integration runs `npx wrangler deploy` whenever
 `main` changes. [`wrangler.jsonc`](wrangler.jsonc) identifies the existing
-`cosplan` Worker, while [`.assetsignore`](.assetsignore) limits uploads to
+`sdcc-planner` Worker, while [`.assetsignore`](.assetsignore) limits uploads to
 `index.html`, `styles.css`, and `js/`. There is no build command or separate
 GitHub deployment secret to configure.
 

@@ -3,6 +3,7 @@
 import { el, personDot } from './dom.js';
 import { personPicks } from '../selectors.js';
 import { isAutoRefreshable } from '../refetch.js';
+import { unwrapGoogleCalendarLink } from '../ingest.js';
 
 export function renderGroup(ctx) {
   const { state, ui, actions } = ctx;
@@ -62,6 +63,15 @@ export function renderGroup(ctx) {
               type: 'url',
               placeholder: 'https://comiccon2026.sched.com/username',
               value: person.source && person.source.startsWith('http') ? person.source : '',
+              onpaste: (e) => {
+                const pasted = e.clipboardData?.getData('text');
+                if (!pasted) return;
+                const cleaned = unwrapGoogleCalendarLink(pasted);
+                if (cleaned !== pasted) {
+                  e.preventDefault();
+                  e.target.value = cleaned;
+                }
+              },
             }),
             el('button', {
               class: 'btn',
@@ -71,6 +81,13 @@ export function renderGroup(ctx) {
                 if (url.trim()) actions.importFromUrl(person.id, url.trim());
               },
             }, 'Fetch'),
+          ),
+          el('p', { class: 'hint' },
+            'Also accepts the ',
+            el('a', { href: 'https://comiccon2026.sched.com/mobile-site', target: '_blank', rel: 'noopener' }, 'Google Calendar sync link'),
+            ' Sched gives you (the one starting with ',
+            el('span', { class: 'mono' }, 'google.com/calendar/render?cid=…'),
+            ') — paste it in and it auto-cleans to the feed URL. Any URL import auto-refreshes every 15 minutes.',
           ),
         ),
         el('div', { class: 'import-option' },

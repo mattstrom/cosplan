@@ -26,6 +26,23 @@ export function toIcsUrl(input) {
   return url.toString();
 }
 
+// For live UI feedback when pasting: unwrap a Google Calendar sync link down
+// to the feed URL it wraps, leaving anything else untouched (toIcsUrl's
+// other normalization — like appending .ics — only happens at fetch time).
+export function unwrapGoogleCalendarLink(input) {
+  try {
+    let u = input.trim().replace(/^webcal:\/\//i, 'https://');
+    if (!/^https?:\/\//i.test(u)) return input;
+    const url = new URL(u);
+    if (/(^|\.)google\.com$/i.test(url.hostname) && url.searchParams.has('cid')) {
+      return toIcsUrl(url.searchParams.get('cid'));
+    }
+  } catch {
+    // not a valid URL yet (e.g. still mid-paste) — leave it for Fetch to validate
+  }
+  return input;
+}
+
 const PROXIES = [
   (u) => u, // direct — works if Sched ever sends CORS headers
   (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,

@@ -28,12 +28,15 @@ Three ways, most to least convenient:
 
 1. **Sched profile URL** — paste `https://comiccon2026.sched.com/yourusername`.
    Sched publishes an iCal feed at that URL + `.ics` (it's what the
-   "Mobile App + iCal" sync buttons use); the app derives and fetches it.
-   Pasting the feed URL itself, a `webcal://` link, or the Google Calendar
-   sync link (`google.com/calendar/render?cid=…`) works too. Your Sched
-   profile must be set to public. Sched doesn't send CORS headers, so the
-   app falls back to public CORS relays — if your network blocks those,
-   use option 2.
+   ["Mobile App + iCal" sync buttons](https://comiccon2026.sched.com/mobile-site)
+   use); the app derives and fetches it. Pasting the feed URL itself, a
+   `webcal://` link, or the Google Calendar sync link
+   (`google.com/calendar/render?cid=…`) works too — grab whichever one Sched
+   hands you from that sync page and paste it in as-is, no need to manually
+   pull the feed URL out of the `cid=` parameter yourself, the app does that
+   part. Your Sched profile must be set to public. Sched doesn't send CORS
+   headers, so the app falls back to public CORS relays — if your network
+   blocks those, use option 2.
 
    URL imports also **auto-refresh**: any open tab re-pulls each person's
    feed every 15 minutes (and when you switch back to the tab), so schedule

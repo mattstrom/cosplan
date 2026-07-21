@@ -4,7 +4,7 @@ import {
   BOOKMARK, assignLanes, buildClusters, eventKey, groupSplits, mergeStates,
   overlaps, personalConflicts, scheduleUnchanged, tierInfo, TIERS,
 } from '../js/logic.js';
-import { toIcsUrl } from '../js/ingest.js';
+import { toIcsUrl, unwrapGoogleCalendarLink } from '../js/ingest.js';
 
 const ev = (id, start, end, title = id) => ({ uid: id, key: `uid:${id}`, title, start, end });
 const H = 60 * 60 * 1000;
@@ -158,6 +158,18 @@ test('toIcsUrl unwraps Google Calendar sync links and upgrades http', () => {
     'https://comiccon2026.sched.com/strom.matt.ics');
   assert.equal(toIcsUrl('http://comiccon2026.sched.com/mattstrom.ics'),
     'https://comiccon2026.sched.com/mattstrom.ics');
+});
+
+test('unwrapGoogleCalendarLink cleans Google Calendar links but leaves everything else alone', () => {
+  assert.equal(
+    unwrapGoogleCalendarLink('https://www.google.com/calendar/render?cid=http://comiccon2026.sched.com/strom.matt.ics'),
+    'https://comiccon2026.sched.com/strom.matt.ics');
+  // A plain profile URL is left as typed — toIcsUrl's .ics/normalization only happens at fetch time.
+  assert.equal(
+    unwrapGoogleCalendarLink('https://comiccon2026.sched.com/mattstrom'),
+    'https://comiccon2026.sched.com/mattstrom');
+  assert.equal(unwrapGoogleCalendarLink('https://comiccon2026.sched.com/ma'), 'https://comiccon2026.sched.com/ma');
+  assert.equal(unwrapGoogleCalendarLink(''), '');
 });
 
 test('scheduleUnchanged spots no-op re-imports', () => {

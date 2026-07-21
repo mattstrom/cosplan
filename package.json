@@ -1,5 +1,5 @@
 {
-  "name": "cosplan",
+  "name": "sdcc-planner",
   "version": "1.0.0",
   "description": "Compare Sched.com personal schedules (e.g. San Diego Comic-Con) across a group of friends.",
   "type": "module",

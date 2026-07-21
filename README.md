@@ -9,15 +9,21 @@ schedules together and shows you:
 - **Timeline** — a day-by-day grid with a column per person, so you can see the
   whole group side by side. A `👥 n` chip marks events multiple people picked;
   side-by-side blocks in one column mean that person is double-booked.
+
+  ![Timeline view](screenshots/timeline.jpg)
 - **Conflicts** — the resolver. Time windows where people picked *different*
   overlapping events become cards with a suggested **Group pick**, scored by
   everyone's rankings (Must-see = 3, Want = 2, If time = 1), plus warnings when
   switching would cost someone a must-see. Personal double-bookings are listed
   separately with a keep/drop suggestion.
+
+  ![Conflict resolver](screenshots/conflicts.jpg)
 - **Rankings** — tier each pick (**MUST / WANT / MAYBE**). Tiers feed the
   conflict math, so ranking honestly gets your panel picked. Not sure yet?
   **🔖 Bookmark** it instead — bookmarked events stay on your timeline
   (shown dashed) but sit out of the conflict math until you rank them.
+
+  ![Rankings view](screenshots/rankings.jpg)
 
 It's a fully static app: no server, no accounts. Data lives in your browser's
 localStorage and moves between friends via share codes.
@@ -43,6 +49,7 @@ Three ways, most to least convenient:
    edits made in Sched flow in on their own — no server involved. Refreshes
    that change nothing are discarded locally; real changes update the group
    (and live sync, if on) while keeping your assigned tiers.
+   ![Import panel with Google Calendar sync link support](screenshots/group-import.jpg)
 2. **Upload the .ics file** — in Sched, open your schedule → the icons in the
    top-right → *Mobile App + iCal* (or *Export Calendar* for private events),
    save the `.ics`, and upload it here.
